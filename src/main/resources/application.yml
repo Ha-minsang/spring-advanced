@@ -1,0 +1,22 @@
+#jwt
+jwt:
+  secret:
+    key: andojansdjkbjvjisahjvbihbikanwfklenvalfnoasvjbonadsbvawsdfv
+
+spring:
+  # database
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/spring
+    username: root
+    password: 12345678
+
+  # jpa
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+    show-sql: true
