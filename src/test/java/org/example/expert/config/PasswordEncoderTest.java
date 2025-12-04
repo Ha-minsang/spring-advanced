@@ -1,5 +1,7 @@
 package org.example.expert.config;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,7 +16,22 @@ class PasswordEncoderTest {
     private PasswordEncoder passwordEncoder;
 
     @Test
-    void matches_메서드가_정상적으로_동작한다() {
+    @DisplayName("encode 메서드가 정상적으로 작동한다")
+    void encode_ReturnsEncodedPassword() {
+        // given
+        String rawPassword = "testPassword";
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+
+        // when
+        BCrypt.Result result = BCrypt.verifyer().verify(rawPassword.toCharArray(), encodedPassword);
+
+        // then
+        assertTrue(result.verified);
+    }
+
+    @Test
+    @DisplayName("matches 메서드가 정상적으로 작동한다")
+    void matches_ShouldWorkAsExpected() {
         // given
         String rawPassword = "testPassword";
         String encodedPassword = passwordEncoder.encode(rawPassword);
