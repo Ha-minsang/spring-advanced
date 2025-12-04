@@ -36,7 +36,7 @@ public class ManagerService {
                 .orElseThrow(() -> new InvalidRequestException("Todo not found"));
 
         if(todo.getUser() == null) {
-            throw new InvalidRequestException("일정을 생성한 유저가 존재하지 않습니다");
+            throw new InvalidRequestException("일정을 생성한 유저가 존재하지 않습니다.");
         }
 
         if (!ObjectUtils.nullSafeEquals(user.getId(), todo.getUser().getId())) {

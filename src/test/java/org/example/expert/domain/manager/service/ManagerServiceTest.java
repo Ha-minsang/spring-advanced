@@ -12,6 +12,7 @@ import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.enums.UserRole;
 import org.example.expert.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -39,7 +40,8 @@ class ManagerServiceTest {
     private ManagerService managerService;
 
     @Test
-    public void manager_목록_조회_시_Todo가_없다면_InvalidRequestException_에러를_던진다() {
+    @DisplayName("목록 조회 시 일정이 없다면 InvalidRequestException 발생")
+    public void saveManager_ShouldThrowException_WhenNoTodosExist() {
         // given
         long todoId = 1L;
         given(todoRepository.findById(todoId)).willReturn(Optional.empty());
@@ -50,7 +52,8 @@ class ManagerServiceTest {
     }
 
     @Test
-    void todo의_user가_null인_경우_예외가_발생한다() {
+    @DisplayName("일정을 생성한 유저가 null인 경우 InvalidRequestException 발생")
+    void saveManager_ShouldThrowException_WhenUserIsNull() {
         // given
         AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
         long todoId = 1L;
@@ -68,11 +71,65 @@ class ManagerServiceTest {
             managerService.saveManager(authUser, todoId, managerSaveRequest)
         );
 
-        assertEquals("일정을 생성한 유저가 존재하지 않습니다", exception.getMessage());
+        assertEquals("일정을 생성한 유저가 존재하지 않습니다.", exception.getMessage());
     }
 
-    @Test // 테스트코드 샘플
-    public void manager_목록_조회에_성공한다() {
+    @Test
+    @DisplayName("일정을 생성한 유저가 아닌 유저가 매니저를 지정하려 할때 InvalidRequestException 발생")
+    void saveManager_ShouldThrowException_WhenUserIsNotTodoOwner() {
+        // given
+        AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
+        long todoId = 1L;
+        long managerUserId = 2L;
+
+        Todo todo = new Todo();
+        User user = new User();
+        ReflectionTestUtils.setField(user, "id", 2L);
+        ReflectionTestUtils.setField(todo, "user", user);
+
+        ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId);
+
+        given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
+
+        // when & then
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () ->
+                managerService.saveManager(authUser, todoId, managerSaveRequest)
+        );
+
+        assertEquals("일정을 생성한 유저만 담당자를 지정할 수 있습니다.", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("일정을 생성한 유저가 스스로를 매니저로 지정하려 할때 InvalidRequestException 발생")
+    void saveManager_ShouldThrowException_WhenUserAssignsSelf() {
+        // given
+        AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
+        long todoId = 1L;
+        long managerUserId = 1L;
+
+        Todo todo = new Todo();
+        User user = new User();
+        User managerUser = new User();
+        ReflectionTestUtils.setField(user, "id", 1L);
+        ReflectionTestUtils.setField(todo, "user", user);
+        ReflectionTestUtils.setField(managerUser, "id", 1L);
+
+        ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId);
+
+        given(todoRepository.findById(todoId)).willReturn(Optional.of(todo));
+        given(userRepository.findById(managerSaveRequest.getManagerUserId())).willReturn(Optional.of(managerUser));
+
+        // when & then
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class, () ->
+                managerService.saveManager(authUser, todoId, managerSaveRequest)
+        );
+
+        assertEquals("일정 작성자는 본인을 담당자로 등록할 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("매니저 목록 조회 성공")
+    public void getManagers_ShouldReturnManagerList() {
         // given
         long todoId = 1L;
         User user = new User("user1@example.com", "password", UserRole.USER);
@@ -94,8 +151,9 @@ class ManagerServiceTest {
         assertEquals(mockManager.getUser().getEmail(), managerResponses.get(0).getUser().getEmail());
     }
 
-    @Test // 테스트코드 샘플
-    void todo가_정상적으로_등록된다() {
+    @Test
+    @DisplayName("매니저 등록 성공")
+    void saveManagers_ShouldSaveManager() {
         // given
         AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
         User user = User.fromAuthUser(authUser);  // 일정을 만든 유저
