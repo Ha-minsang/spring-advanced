@@ -16,7 +16,7 @@ class PasswordEncoderTest {
     private PasswordEncoder passwordEncoder;
 
     @Test
-    @DisplayName("encode 메서드가 정상적으로 작동한다")
+    @DisplayName("비밀번호 암호화 성공")
     void encode_ReturnsEncodedPassword() {
         // given
         String rawPassword = "testPassword";
@@ -30,7 +30,7 @@ class PasswordEncoderTest {
     }
 
     @Test
-    @DisplayName("matches 메서드가 정상적으로 작동한다")
+    @DisplayName("비밀번호 일치 확인 성공")
     void matches_ShouldWorkAsExpected() {
         // given
         String rawPassword = "testPassword";

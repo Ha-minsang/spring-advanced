@@ -12,6 +12,9 @@ import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.enums.UserRole;
 import org.example.expert.domain.user.repository.UserRepository;
+import org.example.expert.support.AuthUserFixture;
+import org.example.expert.support.TodoFixture;
+import org.example.expert.support.UserFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,8 +43,8 @@ class ManagerServiceTest {
     private ManagerService managerService;
 
     @Test
-    @DisplayName("목록 조회 시 일정이 없다면 InvalidRequestException 발생")
-    public void saveManager_ShouldThrowException_WhenNoTodosExist() {
+    @DisplayName("매니저 생성 실패 - 매니저를 생성할 일정이 없음")
+    void saveManager_ShouldThrowException_WhenNoTodosIsNull() {
         // given
         long todoId = 1L;
         given(todoRepository.findById(todoId)).willReturn(Optional.empty());
@@ -52,14 +55,14 @@ class ManagerServiceTest {
     }
 
     @Test
-    @DisplayName("일정을 생성한 유저가 null인 경우 InvalidRequestException 발생")
+    @DisplayName("매니저 생성 실패 - 일정을 생성한 유저 없음")
     void saveManager_ShouldThrowException_WhenUserIsNull() {
         // given
         AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
         long todoId = 1L;
         long managerUserId = 2L;
 
-        Todo todo = new Todo();
+        Todo todo = TodoFixture.createTodo();
         ReflectionTestUtils.setField(todo, "user", null);
 
         ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId);
@@ -75,17 +78,15 @@ class ManagerServiceTest {
     }
 
     @Test
-    @DisplayName("일정을 생성한 유저가 아닌 유저가 매니저를 지정하려 할때 InvalidRequestException 발생")
+    @DisplayName("매니저 생성 실패 - 일정을 생성한 유저가 아닌 유저가 매니저를 지정하려 함")
     void saveManager_ShouldThrowException_WhenUserIsNotTodoOwner() {
         // given
         AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
         long todoId = 1L;
         long managerUserId = 2L;
 
-        Todo todo = new Todo();
-        User user = new User();
-        ReflectionTestUtils.setField(user, "id", 2L);
-        ReflectionTestUtils.setField(todo, "user", user);
+        Todo todo = TodoFixture.createTodo();
+        ReflectionTestUtils.setField(todo.getUser(), "id", 2L);
 
         ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId);
 
@@ -100,19 +101,17 @@ class ManagerServiceTest {
     }
 
     @Test
-    @DisplayName("일정을 생성한 유저가 스스로를 매니저로 지정하려 할때 InvalidRequestException 발생")
+    @DisplayName("매니저 생성 실패 - 일정 생성 유저가 스스로를 매니저로 지정")
     void saveManager_ShouldThrowException_WhenUserAssignsSelf() {
         // given
-        AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
+        AuthUser authUser = AuthUserFixture.createAuthUser();
         long todoId = 1L;
         long managerUserId = 1L;
 
-        Todo todo = new Todo();
-        User user = new User();
-        User managerUser = new User();
-        ReflectionTestUtils.setField(user, "id", 1L);
-        ReflectionTestUtils.setField(todo, "user", user);
+        Todo todo = TodoFixture.createTodo();
+        User managerUser = UserFixture.createUser();
         ReflectionTestUtils.setField(managerUser, "id", 1L);
+        ReflectionTestUtils.setField(todo.getUser(), "id", 1L);
 
         ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId);
 
@@ -129,11 +128,10 @@ class ManagerServiceTest {
 
     @Test
     @DisplayName("매니저 목록 조회 성공")
-    public void getManagers_ShouldReturnManagerList() {
+    void getManagers_ShouldReturnManagerList() {
         // given
         long todoId = 1L;
-        User user = new User("user1@example.com", "password", UserRole.USER);
-        Todo todo = new Todo("Title", "Contents", "Sunny", user);
+        Todo todo = TodoFixture.createTodo();
         ReflectionTestUtils.setField(todo, "id", todoId);
 
         Manager mockManager = new Manager(todo.getUser(), todo);
@@ -155,15 +153,16 @@ class ManagerServiceTest {
     @DisplayName("매니저 등록 성공")
     void saveManagers_ShouldSaveManager() {
         // given
-        AuthUser authUser = new AuthUser(1L, "a@a.com", UserRole.USER);
-        User user = User.fromAuthUser(authUser);  // 일정을 만든 유저
+        AuthUser authUser = AuthUserFixture.createAuthUser();
 
         long todoId = 1L;
-        Todo todo = new Todo("Test Title", "Test Contents", "Sunny", user);
+        Todo todo = TodoFixture.createTodo();
 
         long managerUserId = 2L;
-        User managerUser = new User("b@b.com", "password", UserRole.USER);  // 매니저로 등록할 유저
+        User managerUser = UserFixture.createUser();  // 매니저로 등록할 유저
         ReflectionTestUtils.setField(managerUser, "id", managerUserId);
+        ReflectionTestUtils.setField(authUser, "id", 1L);
+        ReflectionTestUtils.setField(todo.getUser(), "id", 1L);
 
         ManagerSaveRequest managerSaveRequest = new ManagerSaveRequest(managerUserId); // request dto 생성
 

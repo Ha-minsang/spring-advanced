@@ -12,6 +12,8 @@ import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.entity.User;
 import org.example.expert.domain.user.enums.UserRole;
+import org.example.expert.support.AuthUserFixture;
+import org.example.expert.support.CommentFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,8 +42,8 @@ class CommentServiceTest {
     private CommentService commentService;
 
     @Test
-    @DisplayName("댓글 등록중 일정이 없어 InvalidRequestException 발생")
-    public void createComment_ShouldThrowException_WhenTodoNotFound() {
+    @DisplayName("댓글 등록 실패 - 등록할 일정이 없음")
+    void createComment_ShouldThrowException_WhenTodoNotFound() {
         // given
         long todoId = 1;
         CommentSaveRequest request = new CommentSaveRequest("contents");
@@ -60,43 +62,44 @@ class CommentServiceTest {
 
     @Test
     @DisplayName("댓글 등록 성공")
-    public void saveComment_ShouldSaveComment() {
+    void saveComment_ShouldSaveComment() {
         // given
         long todoId = 1;
-        CommentSaveRequest request = new CommentSaveRequest("contents");
-        AuthUser authUser = new AuthUser(1L, "email", UserRole.USER);
-        User user = User.fromAuthUser(authUser);
-        Todo todo = new Todo("title", "title", "contents", user);
-        Comment comment = new Comment(request.getContents(), user, todo);
+        CommentSaveRequest request = new CommentSaveRequest("testContents");
+        AuthUser authUser = AuthUserFixture.createAuthUser();
+        Comment comment = CommentFixture.createComment();
+        ReflectionTestUtils.setField(comment, "id", 1L);
 
-        given(todoRepository.findById(anyLong())).willReturn(Optional.of(todo));
+        given(todoRepository.findById(anyLong())).willReturn(Optional.of(comment.getTodo()));
         given(commentRepository.save(any())).willReturn(comment);
 
         // when
-        CommentSaveResponse result = commentService.saveComment(authUser, todoId, request);
+        CommentSaveResponse response = commentService.saveComment(authUser, todoId, request);
 
         // then
-        assertNotNull(result);
+        assertNotNull(response);
+        assertEquals(comment.getId(), response.getId());
+        assertEquals(comment.getContents(), response.getContents());
     }
 
     @Test
-    @DisplayName("댓글 등록중 일정이 없어 InvalidRequestException 발생")
-    public void getComment_ShouldGetComment() {
+    @DisplayName("댓글 목록 조회 성공")
+    void getComments_ShouldGetComment() {
         // given
         long todoId = 1L;
-        User user = new User("test@email.com", "1234", UserRole.USER);
-        ReflectionTestUtils.setField(user, "id", 1L);
-        Todo todo = new Todo();
-        Comment comment = new Comment("testContents", user, todo);
+        Comment comment = CommentFixture.createComment();
         ReflectionTestUtils.setField(comment, "id", 1L);
         List<Comment> commentList = List.of(comment);
 
         given(commentRepository.findByTodoIdWithUser(anyLong())).willReturn(commentList);
 
         // when
-        List<CommentResponse> result = commentService.getComments(todoId);
+        List<CommentResponse> responses = commentService.getComments(todoId);
 
         // then
-        assertNotNull(result);
+        assertNotNull(responses);
+        assertEquals(1, responses.size());
+        assertEquals(comment.getId(), responses.get(0).getId());
+        assertEquals(comment.getContents(), responses.get(0).getContents());
     }
 }
